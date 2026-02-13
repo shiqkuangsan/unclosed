@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — UnClosed</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/shiqkuangsan/unclosed/main/icons/icon-48.png">
+
+  <!-- Theme init: prevent flash of wrong theme -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      const theme = saved === 'system' || !saved
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : saved;
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Blobity: hide default cursor -->
+  <style>
+    body.blobity-active,
+    body.blobity-active a,
+    body.blobity-active button,
+    body.blobity-active [data-blobity],
+    body.blobity-active [data-blobity-tooltip] {
+      cursor: none !important;
+    }
+  </style>
+  <style>
+    .privacy { padding: 60px 0; max-width: 720px; margin: 0 auto; }
+    .privacy h1 { font-size: 36px; margin-bottom: 8px; }
+    .privacy .updated { font-size: 14px; color: var(--text-secondary); margin-bottom: 40px; }
+    .privacy h2 { font-size: 22px; margin-top: 36px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+    .privacy p, .privacy li { font-size: 16px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 12px; }
+    .privacy ul { padding-left: 24px; }
+    .privacy strong { color: var(--text); }
+    .privacy a { color: var(--primary); border-bottom: 2px solid var(--primary); }
+    .privacy a:hover { opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <img src="https://raw.githubusercontent.com/shiqkuangsan/unclosed/main/icons/icon-48.png" alt="Logo" width="32" height="32">
+        <span>UnClosed</span>
+      </a>
+      <div class="nav-actions">
+        <a href="/" class="nav-link" data-en="Home" data-zh="首页">Home</a>
+        <button class="btn btn-sm" data-theme-icon onclick="toggleTheme()">☀️</button>
+        <button id="lang-toggle" class="btn btn-sm" onclick="toggleLang()">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="privacy container">
+    <h1 data-en="Privacy Policy" data-zh="隐私政策">Privacy Policy</h1>
+    <p class="updated" data-en="Last updated: 2025-02-13" data-zh="最后更新：2025-02-13">Last updated: 2025-02-13</p>
+
+    <h2 data-en="Data Collection" data-zh="数据收集">Data Collection</h2>
+    <p data-en="UnClosed does <strong>NOT</strong> collect, transmit, or share any user data. All data is stored locally on your device using Chrome's chrome.storage.local API." data-zh="UnClosed <strong>不会</strong>收集、传输或分享任何用户数据。所有数据均通过 Chrome 的 chrome.storage.local API 存储在您的本地设备上。">UnClosed does <strong>NOT</strong> collect, transmit, or share any user data. All data is stored locally on your device using Chrome's chrome.storage.local API.</p>
+
+    <h2 data-en="What Data is Stored Locally" data-zh="本地存储的数据">What Data is Stored Locally</h2>
+    <ul>
+      <li data-en="<strong>Tab information</strong>: Title, URL, favicon URL, and domain of closed tabs" data-zh="<strong>标签信息</strong>：已关闭标签页的标题、URL、favicon URL 和域名"><strong>Tab information</strong>: Title, URL, favicon URL, and domain of closed tabs</li>
+      <li data-en="<strong>Timestamps</strong>: When each tab was closed" data-zh="<strong>时间戳</strong>：每个标签页的关闭时间"><strong>Timestamps</strong>: When each tab was closed</li>
+      <li data-en="<strong>User preferences</strong>: Theme setting (light/dark/auto), pinned status" data-zh="<strong>用户偏好</strong>：主题设置（亮色/暗色/跟随系统）、钉住状态"><strong>User preferences</strong>: Theme setting (light/dark/auto), pinned status</li>
+    </ul>
+
+    <h2 data-en="Data Retention" data-zh="数据保留">Data Retention</h2>
+    <ul>
+      <li data-en="Records are automatically deleted after 30 days (pinned records are exempt)" data-zh="记录在 30 天后自动删除（已钉住的记录不受影响）">Records are automatically deleted after 30 days (pinned records are exempt)</li>
+      <li data-en="Maximum of 500 records are kept at any time" data-zh="最多保留 500 条记录">Maximum of 500 records are kept at any time</li>
+      <li data-en="You can manually delete individual records or clear all data at any time" data-zh="您可以随时手动删除单条记录或清空全部数据">You can manually delete individual records or clear all data at any time</li>
+    </ul>
+
+    <h2 data-en="Third-Party Services" data-zh="第三方服务">Third-Party Services</h2>
+    <p data-en="<strong>Google Favicon Service</strong>: Used to display website icons (google.com/s2/favicons). Only the domain name is sent to retrieve the icon. No personal data is transmitted." data-zh="<strong>Google Favicon Service</strong>：用于显示网站图标（google.com/s2/favicons）。仅发送域名以获取图标，不传输任何个人数据。"><strong>Google Favicon Service</strong>: Used to display website icons (google.com/s2/favicons). Only the domain name is sent to retrieve the icon. No personal data is transmitted.</p>
+
+    <h2 data-en="Permissions" data-zh="权限说明">Permissions</h2>
+    <ul>
+      <li data-en="<strong>tabs</strong>: Required to detect tab close events and read tab information" data-zh="<strong>tabs</strong>：用于监听标签关闭事件和读取标签信息"><strong>tabs</strong>: Required to detect tab close events and read tab information</li>
+      <li data-en="<strong>storage</strong>: Required to save closed tab records locally" data-zh="<strong>storage</strong>：用于在本地保存关闭标签记录"><strong>storage</strong>: Required to save closed tab records locally</li>
+    </ul>
+
+    <h2 data-en="Contact" data-zh="联系方式">Contact</h2>
+    <p data-en="If you have any questions, please open an issue on <a href='https://github.com/shiqkuangsan/unclosed/issues'>GitHub</a>." data-zh="如有任何问题，请在 <a href='https://github.com/shiqkuangsan/unclosed/issues'>GitHub</a> 上提交 Issue。">If you have any questions, please open an issue on <a href="https://github.com/shiqkuangsan/unclosed/issues">GitHub</a>.</p>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>© 2025 UnClosed</span>
+      <div class="footer-links">
+        <a href="/" data-en="Home" data-zh="首页">Home</a>
+        <a href="https://github.com/shiqkuangsan/unclosed">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
