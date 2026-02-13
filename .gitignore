@@ -1,0 +1,19 @@
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+
+# Raw video sources (too large for git)
+assets/*.mp4
+
+# Launch plan (internal)
+LAUNCH_PLAN.md

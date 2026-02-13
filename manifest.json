@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "UnClosed",
+  "description": "你以为它关了，其实它一直都在。智能记录关闭的标签页，支持分组、搜索、钉住和批量恢复",
+  "version": "1.0.0",
+  "permissions": ["tabs", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    "default_title": "UnClosed - 你以为它关了，其实它一直都在"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
