@@ -15,18 +15,19 @@
         <a class="author-link" href="#" id="author-link">@shiqkuangsan</a>
       </div>
       <div class="header-actions">
-        <button id="btn-theme" class="icon-btn" title="主题: 跟随系统"></button>
-        <button id="btn-import" class="icon-btn" title="导入记录">
+        <button id="btn-lang" class="icon-btn icon-btn--lang" title="Language"></button>
+        <button id="btn-theme" class="icon-btn" title=""></button>
+        <button id="btn-import" class="icon-btn" title="">
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
             <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"/>
           </svg>
         </button>
-        <button id="btn-export" class="icon-btn" title="导出记录">
+        <button id="btn-export" class="icon-btn" title="">
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
             <path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.707 6.707a1 1 0 01-1.414-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707z"/>
           </svg>
         </button>
-        <button id="btn-clear" class="icon-btn icon-btn--danger" title="清空全部">
+        <button id="btn-clear" class="icon-btn icon-btn--danger" title="">
           <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
           </svg>
@@ -39,13 +40,13 @@
       <svg class="search-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
         <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
       </svg>
-      <input type="text" id="search-input" placeholder="搜索标题、网址或域名..." />
+      <input type="text" id="search-input" placeholder="" />
     </div>
 
     <!-- 视图切换 -->
     <div class="view-toggle">
-      <button class="toggle-btn active" data-group="time">按时间</button>
-      <button class="toggle-btn" data-group="domain">按域名</button>
+      <button class="toggle-btn active" data-group="time"></button>
+      <button class="toggle-btn" data-group="domain"></button>
     </div>
 
     <!-- 标签列表 -->
@@ -53,13 +54,14 @@
 
     <!-- 底栏 -->
     <footer class="footer">
-      <span id="tab-count">0 条记录</span>
+      <span id="tab-count"></span>
     </footer>
   </div>
 
   <!-- 隐藏的文件导入 input -->
   <input type="file" id="import-file" accept=".json" style="display:none" />
 
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

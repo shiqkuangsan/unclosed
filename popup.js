@@ -1,5 +1,5 @@
 /**
- * Tab Rescue - Popup Script
+ * UnClosed - Popup Script
  *
  * 职责：展示关闭标签列表、搜索过滤、分组视图、钉住/恢复/删除操作
  */
@@ -61,8 +61,9 @@ const $toggleBtns = document.querySelectorAll('.toggle-btn');
 // 初始化
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
-  // 初始化主题
+  await initLocale();
   await initTheme();
+  updateUITexts();
 
   // 请求 background 立即刷新缓冲
   try {
@@ -73,6 +74,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   render();
   setupListeners();
 });
+
+// ============================================================
+// 更新静态 UI 文案
+// ============================================================
+function updateUITexts() {
+  // 搜索框
+  $searchInput.placeholder = t('searchPlaceholder');
+
+  // 视图切换按钮
+  $toggleBtns.forEach(btn => {
+    btn.textContent = btn.dataset.group === 'time' ? t('byTime') : t('byDomain');
+  });
+
+  // Header 按钮 title
+  document.getElementById('btn-lang').textContent = t('langLabel');
+  document.getElementById('btn-import').title = t('importTip');
+  document.getElementById('btn-export').title = t('exportTip');
+  document.getElementById('btn-clear').title = t('clearTip');
+
+  // 主题按钮 title
+  updateThemeIcon();
+}
 
 // ============================================================
 // 数据加载
@@ -101,13 +124,13 @@ function applyFilter() {
 // ============================================================
 function render() {
   $tabList.innerHTML = '';
-  $tabCount.textContent = `${allTabs.length} 条记录`;
+  $tabCount.textContent = t('recordCount', { n: allTabs.length });
 
   if (filteredTabs.length === 0) {
     $tabList.innerHTML = `
       <div class="empty-state">
         ${ICONS.empty}
-        <span>${searchQuery ? '没有找到匹配的标签页' : '暂无关闭记录'}</span>
+        <span>${searchQuery ? t('noMatch') : t('noRecord')}</span>
       </div>`;
     return;
   }
@@ -117,7 +140,7 @@ function render() {
   const unpinnedTabs = filteredTabs.filter(t => !t.pinned);
 
   if (pinnedTabs.length > 0) {
-    renderGroup('已钉住', pinnedTabs);
+    renderGroup(t('pinned'), pinnedTabs);
   }
 
   if (unpinnedTabs.length > 0) {
@@ -138,10 +161,10 @@ function renderByTime(tabs) {
   const fiveMin = 5 * 60 * 1000;
 
   const groups = [
-    { label: '刚刚', tabs: [] },
-    { label: '今天', tabs: [] },
-    { label: '昨天', tabs: [] },
-    { label: '更早', tabs: [] },
+    { label: t('justNow'), tabs: [] },
+    { label: t('today'), tabs: [] },
+    { label: t('yesterday'), tabs: [] },
+    { label: t('earlier'), tabs: [] },
   ];
 
   for (const tab of tabs) {
@@ -166,7 +189,7 @@ function renderByTime(tabs) {
 function renderByDomain(tabs) {
   const domainMap = new Map();
   for (const tab of tabs) {
-    const domain = tab.domain || '(未知)';
+    const domain = tab.domain || t('unknownDomain');
     if (!domainMap.has(domain)) domainMap.set(domain, []);
     domainMap.get(domain).push(tab);
   }
@@ -228,15 +251,16 @@ function detectBatches(tabs) {
 // ---- 渲染批量关闭组 ----
 function renderBatchGroup(batch) {
   const isWindowClose = batch.some(t => t.isWindowClose);
+  const tabCountText = t('tabCount', { n: batch.length });
   const label = isWindowClose
-    ? `${ICONS.window} 窗口关闭 (${batch.length} 个标签)`
-    : `批量关闭 (${batch.length} 个标签)`;
+    ? `${ICONS.window} ${t('windowClose')} (${tabCountText})`
+    : `${t('batchClose')} (${tabCountText})`;
 
   const $header = document.createElement('div');
   $header.className = 'batch-header';
   $header.innerHTML = `
     <span>${label}</span>
-    <button class="batch-restore-btn">全部恢复</button>
+    <button class="batch-restore-btn">${t('restoreAll')}</button>
   `;
   $header.querySelector('.batch-restore-btn').addEventListener('click', () => {
     restoreBatch(batch);
@@ -268,13 +292,13 @@ function createTabItem(tab, isBatchChild) {
       </div>
     </div>
     <div class="tab-actions">
-      <button class="tab-action-btn tab-action-btn--pin${pinClass}" title="${tab.pinned ? '取消钉住' : '钉住'}">
+      <button class="tab-action-btn tab-action-btn--pin${pinClass}" title="${tab.pinned ? t('unpinTip') : t('pinTip')}">
         ${pinIcon}
       </button>
-      <button class="tab-action-btn tab-action-btn--restore" title="恢复标签页">
+      <button class="tab-action-btn tab-action-btn--restore" title="${t('restoreTip')}">
         ${ICONS.restore}
       </button>
-      <button class="tab-action-btn tab-action-btn--delete" title="删除记录">
+      <button class="tab-action-btn tab-action-btn--delete" title="${t('deleteTip')}">
         ${ICONS.delete}
       </button>
     </div>
@@ -349,8 +373,8 @@ async function deleteTab(tabId) {
 async function clearAll() {
   const pinnedCount = allTabs.filter(t => t.pinned).length;
   const msg = pinnedCount > 0
-    ? `确定清空所有记录吗？（${pinnedCount} 条已钉住的记录会保留）`
-    : '确定清空所有关闭记录吗？';
+    ? t('confirmClearWithPinned', { n: pinnedCount })
+    : t('confirmClear');
 
   showConfirm(msg, async () => {
     allTabs = allTabs.filter(t => t.pinned);
@@ -367,7 +391,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `tab-rescue-${formatDate(Date.now())}.json`;
+  a.download = `unclosed-${formatDate(Date.now())}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -386,7 +410,7 @@ async function handleImport(event) {
     const imported = JSON.parse(text);
 
     if (!Array.isArray(imported)) {
-      alert('文件格式不正确');
+      alert(t('importFormatError'));
       return;
     }
 
@@ -401,9 +425,9 @@ async function handleImport(event) {
     applyFilter();
     render();
 
-    alert(`成功导入 ${newTabs.length} 条记录`);
+    alert(t('importSuccess', { n: newTabs.length }));
   } catch {
-    alert('导入失败：文件解析错误');
+    alert(t('importParseError'));
   }
 
   // 重置 input
@@ -439,6 +463,11 @@ function setupListeners() {
   });
 
   // 头部按钮
+  document.getElementById('btn-lang').addEventListener('click', async () => {
+    await toggleLocale();
+    updateUITexts();
+    render();
+  });
   document.getElementById('btn-theme').addEventListener('click', toggleTheme);
   document.getElementById('author-link').addEventListener('click', (e) => {
     e.preventDefault();
@@ -469,8 +498,8 @@ function showConfirm(message, onConfirm) {
     <div class="confirm-dialog">
       <p>${message}</p>
       <div class="confirm-actions">
-        <button class="confirm-btn" id="confirm-cancel">取消</button>
-        <button class="confirm-btn confirm-btn--danger" id="confirm-ok">确定</button>
+        <button class="confirm-btn" id="confirm-cancel">${t('cancel')}</button>
+        <button class="confirm-btn confirm-btn--danger" id="confirm-ok">${t('confirm')}</button>
       </div>
     </div>`;
 
@@ -497,22 +526,23 @@ function formatTime(timestamp) {
   const diff = now - timestamp;
   const date = new Date(timestamp);
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
+  if (diff < 60000) return t('justNow');
+  if (diff < 3600000) return t('minutesAgo', { n: Math.floor(diff / 60000) });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const timeStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 
   if (timestamp >= today.getTime()) {
-    return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return timeStr;
   }
 
   const yesterday = today.getTime() - 86400000;
   if (timestamp >= yesterday) {
-    return `昨天 ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return t('yesterdayTime', { time: timeStr });
   }
 
-  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${timeStr}`;
 }
 
 function formatDate(timestamp) {
@@ -564,7 +594,7 @@ function updateThemeIcon() {
   const $btn = document.getElementById('btn-theme');
   if (!$btn) return;
   const icons = { auto: ICONS.themeAuto, dark: ICONS.themeDark, light: ICONS.themeLight };
-  const titles = { auto: '主题: 跟随系统', dark: '主题: 深色', light: '主题: 浅色' };
+  const titles = { auto: t('themeAuto'), dark: t('themeDark'), light: t('themeLight') };
   $btn.innerHTML = icons[themeMode];
   $btn.title = titles[themeMode];
 }

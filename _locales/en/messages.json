@@ -1,0 +1,11 @@
+{
+  "appName": {
+    "message": "UnClosed"
+  },
+  "appDesc": {
+    "message": "Every tab deserves a second chance. Smart closed tab tracker with grouping, search, pinning and batch restore"
+  },
+  "appTitle": {
+    "message": "UnClosed - Every tab deserves a second chance"
+  }
+}

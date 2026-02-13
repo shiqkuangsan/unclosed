@@ -26,12 +26,22 @@ background.js   ← Service Worker，后台常驻
 popup.html/js/css ← 弹出面板 UI
   ├─ 打开时先发 flush 消息让 background 立即写入缓冲
   ├─ 从 storage 读取数据，支持按时间/域名分组渲染
-  ├─ 操作：恢复(chrome.tabs.create)、钉住、删除、批量恢复
+  ├─ 操作：恢复(chrome.tabs.create)、钉住（置顶+左侧竖线标记）、删除、批量恢复
   ├─ 搜索：按 title/url/domain 实时过滤
   └─ 导入/导出 JSON
 
+i18n.js          ← 国际化模块（中/英文）
+  ├─ LOCALES 对象：中英文翻译定义
+  ├─ t(key, params)：翻译函数，支持 {n}、{time} 占位符
+  ├─ initLocale()：初始化语言（storage > 浏览器语言）
+  └─ toggleLocale()：手动切换并持久化
+
+_locales/        ← Chrome 原生 i18n（仅 manifest 使用）
+  ├─ zh_CN/messages.json
+  └─ en/messages.json
+
 theme-init.js    ← 在 CSS 加载前执行，防止主题闪烁（FOUC）
-manifest.json    ← MV3 配置，权限：tabs + storage
+manifest.json    ← MV3 配置，权限：tabs + storage，default_locale: zh_CN
 ```
 
 ### 数据流
@@ -54,7 +64,8 @@ manifest.json    ← MV3 配置，权限：tabs + storage
 
 ## Conventions
 
-- 所有 UI 文本使用中文
+- UI 文案通过 `i18n.js` 的 `t(key)` 获取，支持中英文手动切换，禁止在 JS 中硬编码文案
 - CSS 使用 CSS Custom Properties 实现主题切换（`data-theme="dark"` / `"light"`）
 - 内部 URL（chrome://、about: 等）不记录
 - favicon 优先使用 Google Favicon Service，失败后回退到 Chrome 缓存的 favIconUrl
+- 钉住的记录置顶显示（独立「已钉住」分组），左侧紫色竖线标记

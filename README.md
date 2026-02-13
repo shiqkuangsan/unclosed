@@ -5,7 +5,7 @@
 <h1 align="center">UnClosed</h1>
 
 <p align="center">
-  <em>You thought it was gone. It never left.</em>
+  <em>Every tab deserves a second chance.</em>
 </p>
 
 <p align="center">
@@ -28,10 +28,11 @@
 - **Smart Grouping** — Group by time (Just now / Today / Yesterday / Earlier) or by domain
 - **Batch Close Detection** — Tabs closed within a short window are grouped together with one-click restore
 - **Search & Filter** — Real-time search by title, URL, or domain
-- **Pin & Keep** — Pin important records to prevent auto-cleanup
+- **Pin & Keep** — Pin important records to prevent auto-cleanup, pinned items stay on top with a visual indicator
 - **Badge Count** — Icon badge shows today's closed tab count
 - **Export / Import** — JSON format data export and import
 - **Theme Switching** — Light / Dark / Follow System
+- **i18n** — Chinese / English with manual toggle, defaults to browser language
 - **Auto Cleanup** — Max 500 records, 30-day expiry (pinned records are exempt)
 
 ## Screenshots
