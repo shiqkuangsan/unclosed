@@ -30,8 +30,8 @@ function applyLang() {
   document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : 'en';
 
   document.title = currentLang === 'zh'
-    ? 'UnClosed — 你以为它关了，其实它一直都在。'
-    : 'UnClosed — You thought it was gone. It never left.';
+    ? 'UnClosed — 每个标签页，都值得第二次机会。'
+    : 'UnClosed — Every tab deserves a second chance.';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

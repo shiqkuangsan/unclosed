@@ -5,7 +5,7 @@
 <h1 align="center">UnClosed</h1>
 
 <p align="center">
-  <em>你以为它关了，其实它一直都在。</em>
+  <em>每个标签页，都值得第二次机会。</em>
 </p>
 
 <p align="center">
