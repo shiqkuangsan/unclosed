@@ -68,4 +68,4 @@ UnClosed 不会收集或传输任何用户数据。所有数据均存储在您�
 
 ## 许可证
 
-[MIT](LICENSE) © [shiqkuangsan](https://github.com/shiqkuangsan)
+[MIT](LICENSE) © 2026 [shiqkuangsan](https://github.com/shiqkuangsan)

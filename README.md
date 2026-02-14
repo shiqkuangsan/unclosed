@@ -69,4 +69,4 @@ UnClosed does not collect or transmit any user data. All data is stored locally 
 
 ## License
 
-[MIT](LICENSE) © [shiqkuangsan](https://github.com/shiqkuangsan)
+[MIT](LICENSE) © 2026 [shiqkuangsan](https://github.com/shiqkuangsan)
