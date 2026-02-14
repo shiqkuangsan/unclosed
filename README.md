@@ -39,8 +39,7 @@
 
 | Light | Dark |
 |:---:|:---:|
-| <img src="assets/light-1.png" width="360"> | <img src="assets/dark-1.png" width="360"> |
-| <img src="assets/light-2.png" width="360"> | <img src="assets/dark-2.png" width="360"> |
+| <img src="assets/light-en.png" width="360"> | <img src="assets/dark-en.png" width="360"> |
 
 ## Install
 
