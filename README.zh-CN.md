@@ -43,10 +43,7 @@
 
 ## 安装
 
-**Chrome Web Store**（审核中）
-
-<!-- TODO: 上架后替换链接 -->
-<!-- [<img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" height="58" alt="Chrome Web Store">](https://chrome.google.com/webstore/detail/unclosed/YOUR_EXTENSION_ID) -->
+[<img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" height="58" alt="Chrome Web Store">](https://chromewebstore.google.com/detail/unclosed/jpajpafcjmfbahjdocnfgbcgmbgclbip)
 
 **手动安装**
 
