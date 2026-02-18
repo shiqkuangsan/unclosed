@@ -20,3 +20,5 @@ LAUNCH_PLAN.md
 
 # CWS store assets (local only)
 store-assets/
+.vercel
+.env*.local
