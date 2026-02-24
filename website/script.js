@@ -51,34 +51,126 @@ function initCardTilt() {
     spotlight.className = 'card-spotlight';
     card.appendChild(spotlight);
 
-    card.addEventListener('mouseenter', () => {
-      card.classList.add('is-tilting');
-    });
+    let isActive = false;
+    let cardRect = null;
+    let pointerX = 0;
+    let pointerY = 0;
+    let rafId = 0;
 
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+    const maxTilt = 12;
+    const edgePadding = 14;
+    const tiltStartInset = 12;
+    const tiltRampDistance = 26;
+    const leaveTolerance = 2;
 
-      // Tilt: max ±12 degrees
-      const rotateY = ((x - centerX) / centerX) * 12;
-      const rotateX = ((centerY - y) / centerY) * 12;
+    function isInsideCardRect(clientX, clientY, tolerance = 0) {
+      if (!cardRect) return false;
+      return (
+        clientX >= cardRect.left - tolerance &&
+        clientX <= cardRect.right + tolerance &&
+        clientY >= cardRect.top - tolerance &&
+        clientY <= cardRect.bottom + tolerance
+      );
+    }
 
-      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
-      card.style.boxShadow = `${-rotateY}px ${rotateX}px 0 var(--border)`;
-
-      // Spotlight gradient follows cursor
-      spotlight.style.background = `radial-gradient(circle 180px at ${x}px ${y}px, rgba(255,255,255,0.25), transparent)`;
-    });
-
-    card.addEventListener('mouseleave', () => {
+    function resetTilt() {
+      if (!isActive) return;
+      isActive = false;
+      cardRect = null;
       card.classList.remove('is-tilting');
       card.style.transform = '';
       card.style.boxShadow = '';
       spotlight.style.background = '';
-    });
+      window.removeEventListener('pointermove', onPointerMove);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+    }
+
+    function updateTiltFrame() {
+      rafId = 0;
+      if (!isActive || !cardRect) return;
+
+      if (!isInsideCardRect(pointerX, pointerY, leaveTolerance)) {
+        resetTilt();
+        return;
+      }
+
+      const rawX = pointerX - cardRect.left;
+      const rawY = pointerY - cardRect.top;
+      const boundedRawX = Math.min(Math.max(rawX, 0), cardRect.width);
+      const boundedRawY = Math.min(Math.max(rawY, 0), cardRect.height);
+
+      // Clamp the very edge to keep the first few pixels stable on entry.
+      const x = Math.min(Math.max(rawX, edgePadding), cardRect.width - edgePadding);
+      const y = Math.min(Math.max(rawY, edgePadding), cardRect.height - edgePadding);
+      const centerX = cardRect.width / 2;
+      const centerY = cardRect.height / 2;
+      const edgeDistance = Math.min(
+        boundedRawX,
+        cardRect.width - boundedRawX,
+        boundedRawY,
+        cardRect.height - boundedRawY
+      );
+
+      // Ease-in strength from card edge to avoid immediate "border runs away" feel.
+      const linearStrength = Math.min(
+        Math.max((edgeDistance - tiltStartInset) / tiltRampDistance, 0),
+        1
+      );
+      const tiltStrength = linearStrength * linearStrength * (3 - 2 * linearStrength);
+
+      const rotateY = ((x - centerX) / centerX) * maxTilt * tiltStrength;
+      const rotateX = ((centerY - y) / centerY) * maxTilt * tiltStrength;
+      const scale = 1 + 0.03 * tiltStrength;
+
+      card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`;
+      card.style.boxShadow = `${-rotateY}px ${rotateX}px 0 var(--border)`;
+      spotlight.style.background = `radial-gradient(circle 180px at ${rawX}px ${rawY}px, rgba(255,255,255,0.25), transparent)`;
+    }
+
+    function queueTiltFrame() {
+      if (rafId) return;
+      rafId = requestAnimationFrame(updateTiltFrame);
+    }
+
+    function onPointerMove(e) {
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+      queueTiltFrame();
+    }
+
+    function onPointerEnter(e) {
+      if (e.pointerType === 'touch' || isActive) return;
+      cardRect = card.getBoundingClientRect();
+      isActive = true;
+      card.classList.add('is-tilting');
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      queueTiltFrame();
+    }
+
+    function onPointerLeave(e) {
+      if (!isActive) return;
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+
+      // Some leaves are caused by 3D projection changes near edges.
+      // Defer a tick and only reset when pointer is truly outside the base rect.
+      requestAnimationFrame(() => {
+        if (!isActive) return;
+        if (!isInsideCardRect(pointerX, pointerY, leaveTolerance)) {
+          resetTilt();
+        }
+      });
+    }
+
+    card.addEventListener('pointerenter', onPointerEnter);
+    card.addEventListener('pointerleave', onPointerLeave);
+    card.addEventListener('pointercancel', resetTilt);
+    window.addEventListener('blur', resetTilt);
   });
 }
 

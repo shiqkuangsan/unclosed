@@ -336,7 +336,7 @@ a {
 }
 
 .feature-card:hover {
-  transform: translate(-3px, -3px);
+  /* Keep hitbox stable to avoid enter/leave jitter on edge crossing */
   box-shadow: var(--shadow-hover);
 }
 
