@@ -513,7 +513,7 @@ function toggleSettingsPanel() {
 async function initSettings() {
   const { settings = {} } = await chrome.storage.local.get('settings');
   const $toggle = document.getElementById('toggle-track-override');
-  $toggle.checked = settings.trackOverride !== false; // default true
+  $toggle.checked = settings.trackOverride === true; // default false
 }
 
 // ============================================================

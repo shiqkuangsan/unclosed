@@ -494,6 +494,8 @@ body {
 .icon-btn--settings {
   padding: 2px;
   color: var(--text-tertiary);
+  position: absolute;
+  right: 14px;
 }
 
 .icon-btn--settings:hover {

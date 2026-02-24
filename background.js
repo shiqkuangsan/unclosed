@@ -32,7 +32,7 @@ const tabCache = new Map(); // tabId -> { title, url, favIconUrl }
 const navPending = new Map(); // tabId -> { title, url, favIconUrl, domain } (navigation override cache)
 let closeBuffer = [];       // 待写入的关闭记录缓冲
 let flushTimer = null;
-let trackOverride = true;   // 是否记录地址栏覆盖的页面
+let trackOverride = false;  // 是否记录地址栏覆盖的页面（默认关闭）
 
 // ============================================================
 // 初始化：查询所有已打开的标签页来填充缓存
