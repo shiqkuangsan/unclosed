@@ -29,8 +29,10 @@ const IGNORED_PREFIXES = [
 // 状态
 // ============================================================
 const tabCache = new Map(); // tabId -> { title, url, favIconUrl }
+const navPending = new Map(); // tabId -> { title, url, favIconUrl, domain } (navigation override cache)
 let closeBuffer = [];       // 待写入的关闭记录缓冲
 let flushTimer = null;
+let trackOverride = true;   // 是否记录地址栏覆盖的页面
 
 // ============================================================
 // 初始化：查询所有已打开的标签页来填充缓存
@@ -38,6 +40,13 @@ let flushTimer = null;
 chrome.tabs.query({}).then(tabs => {
   for (const tab of tabs) {
     tabCache.set(tab.id, extractTabInfo(tab));
+  }
+});
+
+// 读取设置
+chrome.storage.local.get('settings').then(({ settings }) => {
+  if (settings && typeof settings.trackOverride === 'boolean') {
+    trackOverride = settings.trackOverride;
   }
 });
 
@@ -59,6 +68,7 @@ chrome.tabs.onUpdated.addListener((tabId, _changeInfo, tab) => {
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   const tabInfo = tabCache.get(tabId);
   tabCache.delete(tabId);
+  navPending.delete(tabId);
 
   // 无信息或内部页面，跳过
   if (!tabInfo || !tabInfo.url || isIgnoredUrl(tabInfo.url)) return;
@@ -78,10 +88,59 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   bufferClose(closedTab);
 });
 
-// 存储变化 → 更新 Badge
+// 导航覆盖检测：地址栏输入新 URL 覆盖当前页面
+chrome.webNavigation.onBeforeNavigate.addListener(details => {
+  if (details.frameId !== 0) return;
+  const tabInfo = tabCache.get(details.tabId);
+  if (tabInfo && tabInfo.url && !isIgnoredUrl(tabInfo.url)) {
+    navPending.set(details.tabId, { ...tabInfo });
+  }
+});
+
+chrome.webNavigation.onCommitted.addListener(details => {
+  if (details.frameId !== 0) return;
+
+  const pending = navPending.get(details.tabId);
+  navPending.delete(details.tabId);
+
+  if (!trackOverride || !pending) return;
+
+  const { transitionType, transitionQualifiers = [] } = details;
+
+  // 只捕获用户在地址栏主动输入的导航
+  if (transitionType !== 'typed') return;
+  if (!transitionQualifiers.includes('from_address_bar')) return;
+  if (transitionQualifiers.includes('forward_back')) return;
+
+  // URL 未变（刷新）则跳过
+  if (pending.url === details.url) return;
+
+  const closedTab = {
+    id: generateId(),
+    title: pending.title,
+    url: pending.url,
+    favIconUrl: pending.favIconUrl,
+    domain: getDomain(pending.url),
+    closedAt: Date.now(),
+    closeCount: 1,
+    pinned: false,
+    isWindowClose: false,
+  };
+
+  bufferClose(closedTab);
+});
+
+// 存储变化 → 更新 Badge + 同步设置
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.closedTabs) {
+  if (area !== 'local') return;
+  if (changes.closedTabs) {
     updateBadge(changes.closedTabs.newValue || []);
+  }
+  if (changes.settings) {
+    const s = changes.settings.newValue || {};
+    if (typeof s.trackOverride === 'boolean') {
+      trackOverride = s.trackOverride;
+    }
   }
 });
 

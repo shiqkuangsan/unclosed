@@ -487,6 +487,110 @@ body {
   font-size: 11px;
   color: var(--text-tertiary);
   flex-shrink: 0;
+  gap: 6px;
+  position: relative;
+}
+
+.icon-btn--settings {
+  padding: 2px;
+  color: var(--text-tertiary);
+}
+
+.icon-btn--settings:hover {
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   Settings Panel
+   ============================================================ */
+.settings-panel {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.settings-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.settings-info {
+  position: relative;
+  display: inline-flex;
+  color: var(--text-tertiary);
+  cursor: help;
+}
+
+.settings-info:hover {
+  color: var(--text-secondary);
+}
+
+.settings-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  white-space: normal;
+  z-index: 10;
+}
+
+.settings-info:hover .settings-tooltip {
+  display: block;
+}
+
+.settings-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.settings-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.15s;
+}
+
+.settings-toggle:checked {
+  background: var(--accent);
+}
+
+.settings-toggle:checked::after {
+  transform: translateX(16px);
 }
 
 /* ============================================================

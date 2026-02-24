@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await chrome.runtime.sendMessage({ type: 'flush' });
   } catch { /* background 可能未就绪 */ }
 
+  await initSettings();
   await loadTabs();
   render();
   setupListeners();
@@ -95,6 +96,11 @@ function updateUITexts() {
 
   // 主题按钮 title
   updateThemeIcon();
+
+  // 设置面板
+  document.getElementById('btn-settings').title = t('settings');
+  document.getElementById('label-track-override').textContent = t('trackOverrideLabel');
+  document.getElementById('tooltip-track-override').textContent = t('trackOverrideTip');
 }
 
 // ============================================================
@@ -478,6 +484,14 @@ function setupListeners() {
   document.getElementById('btn-import').addEventListener('click', importData);
   document.getElementById('import-file').addEventListener('change', handleImport);
 
+  // 设置面板
+  document.getElementById('btn-settings').addEventListener('click', toggleSettingsPanel);
+  document.getElementById('toggle-track-override').addEventListener('change', async (e) => {
+    const { settings = {} } = await chrome.storage.local.get('settings');
+    settings.trackOverride = e.target.checked;
+    await chrome.storage.local.set({ settings });
+  });
+
   // 监听 storage 变化（background 可能写入新数据）
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.closedTabs) {
@@ -486,6 +500,20 @@ function setupListeners() {
       render();
     }
   });
+}
+
+// ============================================================
+// 设置面板
+// ============================================================
+function toggleSettingsPanel() {
+  const $panel = document.getElementById('settings-panel');
+  $panel.hidden = !$panel.hidden;
+}
+
+async function initSettings() {
+  const { settings = {} } = await chrome.storage.local.get('settings');
+  const $toggle = document.getElementById('toggle-track-override');
+  $toggle.checked = settings.trackOverride !== false; // default true
 }
 
 // ============================================================

@@ -67,6 +67,11 @@ const LOCALES = {
     importFormatError: '文件格式不正确',
     importSuccess: '成功导入 {n} 条记录',
     importParseError: '导入失败：文件解析错误',
+
+    // Settings
+    settings: '设置',
+    trackOverrideLabel: '记录地址栏覆盖的页面',
+    trackOverrideTip: '在地址栏输入新网址回车时，自动记录被替换掉的旧页面',
   },
 
   en: {
@@ -131,6 +136,11 @@ const LOCALES = {
     importFormatError: 'Invalid file format',
     importSuccess: 'Successfully imported {n} records',
     importParseError: 'Import failed: file parse error',
+
+    // Settings
+    settings: 'Settings',
+    trackOverrideLabel: 'Track pages replaced by address bar',
+    trackOverrideTip: 'When you type a new URL in the address bar, the replaced page is automatically saved',
   },
 };
 
