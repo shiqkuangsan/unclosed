@@ -1,5 +1,10 @@
 # Claude Code
 .claude/
+# codex
+.agents/
+
+# CatPaw local workflow artifacts
+.catpaw/
 
 # macOS
 .DS_Store
