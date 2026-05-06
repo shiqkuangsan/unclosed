@@ -191,7 +191,7 @@ function renderByTime(tabs) {
 
   for (const group of groups) {
     if (group.tabs.length === 0) continue;
-    renderGroup(group.label, group.tabs);
+    renderGroup(group.label, group.tabs, { clearable: true });
   }
 }
 
@@ -215,14 +215,16 @@ function renderByDomain(tabs) {
     renderGroup(group.label, group.tabs, {
       collapsible: true,
       collapseKey: domainKey,
+      clearable: true,
     });
   }
 }
 
 // ---- 渲染一个分组 ----
 function renderGroup(label, tabs, options = {}) {
-  const { collapsible = false, collapseKey = label } = options;
+  const { collapsible = false, collapseKey = label, clearable = false } = options;
   const isCollapsed = collapsible && domainCollapseState.isCollapsed(collapseKey);
+  const clearableIds = clearable ? getClearableGroupTabIds(tabs) : [];
 
   // 分组头
   const $header = document.createElement('div');
@@ -234,14 +236,19 @@ function renderGroup(label, tabs, options = {}) {
         <span class="group-chevron">${ICONS.chevron}</span>
         <span class="group-label">${escapeHtml(label)}</span>
       </button>
-      <span class="count">${tabs.length}</span>
+      ${createGroupActionsMarkup(tabs.length, clearableIds.length)}
     `;
     $header.querySelector('.group-toggle-btn').addEventListener('click', () => {
       domainCollapseState.toggle(collapseKey);
       render();
     });
   } else {
-    $header.innerHTML = `<span>${escapeHtml(label)}</span><span class="count">${tabs.length}</span>`;
+    $header.innerHTML = `<span class="group-label">${escapeHtml(label)}</span>${createGroupActionsMarkup(tabs.length, clearableIds.length)}`;
+  }
+
+  const $clearBtn = $header.querySelector('.group-clear-btn');
+  if ($clearBtn) {
+    $clearBtn.addEventListener('click', () => clearGroup(label, tabs));
   }
 
   $tabList.appendChild($header);
@@ -262,6 +269,19 @@ function renderGroup(label, tabs, options = {}) {
       }
     }
   }
+}
+
+function createGroupActionsMarkup(totalCount, clearableCount) {
+  return `
+    <span class="group-actions">
+      <span class="count">${totalCount}</span>
+      ${clearableCount > 0 ? `
+        <button class="group-clear-btn" type="button" title="${t('clearGroupTip')}">
+          ${ICONS.delete}
+        </button>
+      ` : ''}
+    </span>
+  `;
 }
 
 // ---- 检测批量关闭 ----
@@ -406,6 +426,20 @@ async function deleteTab(tabId) {
   await saveTabs();
   applyFilter();
   render();
+}
+
+/** 清理一个分组内未钉住的记录 */
+async function clearGroup(label, tabs) {
+  const ids = new Set(getClearableGroupTabIds(tabs));
+  if (ids.size === 0) return;
+
+  const msg = t('confirmClearGroup', { label, n: ids.size });
+  showConfirm(msg, async () => {
+    allTabs = allTabs.filter(tab => !ids.has(tab.id));
+    await saveTabs();
+    applyFilter();
+    render();
+  });
 }
 
 /** 清空全部（保留钉住的） */
@@ -557,13 +591,14 @@ function showConfirm(message, onConfirm) {
   $overlay.className = 'confirm-overlay';
   $overlay.innerHTML = `
     <div class="confirm-dialog">
-      <p>${message}</p>
+      <p></p>
       <div class="confirm-actions">
         <button class="confirm-btn" id="confirm-cancel">${t('cancel')}</button>
         <button class="confirm-btn confirm-btn--danger" id="confirm-ok">${t('confirm')}</button>
       </div>
     </div>`;
 
+  $overlay.querySelector('p').textContent = message;
   document.body.appendChild($overlay);
 
   $overlay.querySelector('#confirm-cancel').addEventListener('click', () => {

@@ -280,6 +280,42 @@ body {
   flex-shrink: 0;
 }
 
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.group-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.group-clear-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.group-clear-btn:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.group-clear-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
 .group-header--collapsible {
   gap: 8px;
 }

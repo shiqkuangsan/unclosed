@@ -60,6 +60,8 @@ const LOCALES = {
     // Confirm dialog
     confirmClearWithPinned: '确定清空所有记录吗？（{n} 条已钉住的记录会保留）',
     confirmClear: '确定清空所有关闭记录吗？',
+    clearGroupTip: '清理该分组',
+    confirmClearGroup: '确定删除「{label}」分组中的 {n} 条记录吗？',
     cancel: '取消',
     confirm: '确定',
 
@@ -129,6 +131,8 @@ const LOCALES = {
     // Confirm dialog
     confirmClearWithPinned: 'Clear all records? ({n} pinned records will be kept)',
     confirmClear: 'Clear all closed tab records?',
+    clearGroupTip: 'Clear this group',
+    confirmClearGroup: 'Delete {n} records in "{label}"?',
     cancel: 'Cancel',
     confirm: 'OK',
 

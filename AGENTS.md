@@ -17,7 +17,6 @@ UnClosed 是一个 Chrome 扩展（Manifest V3），自动记录关闭的标签�
 ## CatPaw
 
 - 当前项目的 CatPaw 工作入口是 `.catpaw/index.md`。
-- 旧 `todos/` 目录仅作为 legacy reference 保留；未经明确确认，不删除、不移动、不批量清理。
 - `.catpaw/` 是本地工作流产物，已在 `.gitignore` 中忽略。
 
 ## Architecture
