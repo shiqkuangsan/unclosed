@@ -23,6 +23,9 @@ const ICONS = {
   delete: `<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
     <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
   </svg>`,
+  chevron: `<svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true">
+    <path d="M4.22 5.97a.75.75 0 0 1 1.06 0L8 8.69l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.03a.75.75 0 0 1 0-1.06z"/>
+  </svg>`,
   empty: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
     <rect x="12" y="8" width="40" height="48" rx="4"/><path d="M20 20h24M20 28h24M20 36h12" stroke-linecap="round"/>
   </svg>`,
@@ -48,6 +51,7 @@ let filteredTabs = [];
 let searchQuery = '';
 let groupBy = 'time'; // 'time' | 'domain'
 let themeMode = 'auto'; // 'auto' | 'light' | 'dark'
+const domainCollapseState = createDomainCollapseState();
 
 // ============================================================
 // DOM 引用
@@ -195,25 +199,54 @@ function renderByTime(tabs) {
 function renderByDomain(tabs) {
   const domainMap = new Map();
   for (const tab of tabs) {
-    const domain = tab.domain || t('unknownDomain');
-    if (!domainMap.has(domain)) domainMap.set(domain, []);
-    domainMap.get(domain).push(tab);
+    const domainKey = tab.domain || '__unknown__';
+    if (!domainMap.has(domainKey)) {
+      domainMap.set(domainKey, {
+        label: tab.domain || t('unknownDomain'),
+        tabs: [],
+      });
+    }
+    domainMap.get(domainKey).tabs.push(tab);
   }
 
   // 按标签数量降序排列
-  const sorted = [...domainMap.entries()].sort((a, b) => b[1].length - a[1].length);
-  for (const [domain, tabs] of sorted) {
-    renderGroup(domain, tabs);
+  const sorted = [...domainMap.entries()].sort((a, b) => b[1].tabs.length - a[1].tabs.length);
+  for (const [domainKey, group] of sorted) {
+    renderGroup(group.label, group.tabs, {
+      collapsible: true,
+      collapseKey: domainKey,
+    });
   }
 }
 
 // ---- 渲染一个分组 ----
-function renderGroup(label, tabs) {
+function renderGroup(label, tabs, options = {}) {
+  const { collapsible = false, collapseKey = label } = options;
+  const isCollapsed = collapsible && domainCollapseState.isCollapsed(collapseKey);
+
   // 分组头
   const $header = document.createElement('div');
-  $header.className = 'group-header';
-  $header.innerHTML = `<span>${label}</span><span class="count">${tabs.length}</span>`;
+  $header.className = `group-header${collapsible ? ' group-header--collapsible' : ''}${isCollapsed ? ' is-collapsed' : ''}`;
+
+  if (collapsible) {
+    $header.innerHTML = `
+      <button class="group-toggle-btn" type="button" aria-expanded="${!isCollapsed}">
+        <span class="group-chevron">${ICONS.chevron}</span>
+        <span class="group-label">${escapeHtml(label)}</span>
+      </button>
+      <span class="count">${tabs.length}</span>
+    `;
+    $header.querySelector('.group-toggle-btn').addEventListener('click', () => {
+      domainCollapseState.toggle(collapseKey);
+      render();
+    });
+  } else {
+    $header.innerHTML = `<span>${escapeHtml(label)}</span><span class="count">${tabs.length}</span>`;
+  }
+
   $tabList.appendChild($header);
+
+  if (isCollapsed) return;
 
   // 检测批量关闭
   const batches = detectBatches(tabs);

@@ -277,6 +277,58 @@ body {
 .group-header .count {
   font-weight: 400;
   font-size: 10px;
+  flex-shrink: 0;
+}
+
+.group-header--collapsible {
+  gap: 8px;
+}
+
+.group-toggle-btn {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.group-toggle-btn:hover {
+  color: var(--text-secondary);
+}
+
+.group-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: 3px;
+}
+
+.group-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.group-header.is-collapsed .group-chevron {
+  transform: rotate(-90deg);
+}
+
+.group-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Batch Header */
