@@ -32,6 +32,7 @@ const tabCache = new Map(); // tabId -> { title, url, favIconUrl }
 const navPending = new Map(); // tabId -> { title, url, favIconUrl, domain } (navigation override cache)
 let closeBuffer = [];       // 待写入的关闭记录缓冲
 let flushTimer = null;
+let historyQueue = Promise.resolve();
 let trackOverride = false;  // 是否记录地址栏覆盖的页面（默认关闭）
 
 // ============================================================
@@ -152,12 +153,85 @@ chrome.runtime.onStartup.addListener(() => updateBadge());
 // 消息处理（popup 可能发送的指令）
 // ============================================================
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.type === 'flush') {
-    // popup 打开时请求立即刷新缓冲
-    flushBuffer().then(() => sendResponse({ ok: true }));
-    return true; // 异步响应
-  }
+  if (message.type !== 'flush' && message.type !== 'history') return;
+  const operation = message.type === 'flush'
+    ? flushBuffer().then(() => ({ ok: true }))
+    : mutateHistory(message);
+  operation.then(sendResponse, error => {
+    console.error('History operation failed', error);
+    sendResponse({ ok: false });
+  });
+  return true;
 });
+
+// A single writer serializes all history read/modify/write operations.
+function enqueueHistory(operation) {
+  const result = historyQueue.then(operation);
+  historyQueue = result.catch(() => {});
+  return result;
+}
+
+async function mutateHistory(message) {
+  await flushBuffer();
+  return enqueueHistory(async () => {
+    const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+    let tabs = closedTabs;
+    let importedCount = 0;
+    const ids = new Set(Array.isArray(message.ids) ? message.ids : []);
+    switch (message.action) {
+      case 'remove':
+        tabs = tabs.filter(tab => !ids.has(tab.id));
+        break;
+      case 'clear':
+        tabs = tabs.filter(tab => tab.pinned || !ids.has(tab.id));
+        break;
+      case 'toggle-pin':
+        tabs = tabs.map(tab => tab.id === message.id ? { ...tab, pinned: !tab.pinned } : tab);
+        break;
+      case 'import': {
+        if (!Array.isArray(message.tabs)) throw new Error('Invalid import');
+        const keys = new Set(tabs.map(tab => `${tab.url}|${tab.closedAt}`));
+        const additions = [];
+        for (const raw of message.tabs) {
+          const tab = normalizeImportedTab(raw);
+          if (!tab) continue;
+          const key = `${tab.url}|${tab.closedAt}`;
+          if (keys.has(key)) continue;
+          keys.add(key);
+          additions.push(tab);
+        }
+        tabs = enforceLimit([...additions, ...tabs]);
+        const retained = new Set(tabs.map(tab => tab.id));
+        importedCount = additions.filter(tab => retained.has(tab.id)).length;
+        break;
+      }
+      default:
+        throw new Error('Unknown history action');
+    }
+    tabs.sort((a, b) => b.closedAt - a.closedAt);
+    await chrome.storage.local.set({ closedTabs: tabs });
+    return { ok: true, importedCount };
+  });
+}
+
+function normalizeImportedTab(raw) {
+  if (!raw || typeof raw.url !== 'string' || !Number.isFinite(raw.closedAt) || raw.closedAt <= 0) return null;
+  let url;
+  try { url = new URL(raw.url); } catch { return null; }
+  if (!['http:', 'https:', 'file:', 'ftp:'].includes(url.protocol)) return null;
+  return {
+    id: generateId(),
+    url: url.href,
+    title: typeof raw.title === 'string' ? raw.title : url.href,
+    domain: url.hostname,
+    favIconUrl: typeof raw.favIconUrl === 'string' && /^https?:\/\//i.test(raw.favIconUrl) ? raw.favIconUrl : '',
+    closedAt: Math.min(raw.closedAt, Date.now()),
+    closeCount: Number.isSafeInteger(raw.closeCount) && raw.closeCount > 0 ? raw.closeCount : 1,
+    pinned: raw.pinned === true,
+    batchId: typeof raw.batchId === 'string' ? raw.batchId : null,
+    isWindowClose: raw.isWindowClose === true,
+  };
+}
 
 // ============================================================
 // 核心函数
@@ -174,7 +248,7 @@ function bufferClose(closedTab) {
   }
 
   if (flushTimer) clearTimeout(flushTimer);
-  flushTimer = setTimeout(flushBuffer, BATCH_WINDOW_MS);
+  flushTimer = setTimeout(() => flushBuffer().catch(error => console.error('History flush failed', error)), BATCH_WINDOW_MS);
 
   // Badge 立即更新，不等待缓冲 flush
   updateBadgeWithBuffer();
@@ -188,46 +262,61 @@ async function updateBadgeWithBuffer() {
 }
 
 /** 将缓冲区数据写入 storage */
-async function flushBuffer() {
-  if (closeBuffer.length === 0) return;
-
-  const batch = closeBuffer;
-  closeBuffer = [];
+function flushBuffer() {
+  if (flushTimer !== null) clearTimeout(flushTimer);
   flushTimer = null;
-
-  // 如果 2 个以上标签在同一批次关闭，分配相同 batchId
-  if (batch.length >= 2) {
-    const batchId = generateId();
-    batch.forEach(tab => (tab.batchId = batchId));
-  } else {
-    batch[0].batchId = null;
-  }
-
-  // 读取现有数据
-  const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
-
-  // 去重：如果 storage 中已有相同 URL 的记录，合并计数
-  for (const bufItem of batch) {
-    const existingIdx = closedTabs.findIndex(t => t.url === bufItem.url);
-    if (existingIdx !== -1) {
-      const existing = closedTabs[existingIdx];
-      bufItem.closeCount = (bufItem.closeCount || 1) + (existing.closeCount || 1);
-      if (existing.pinned) bufItem.pinned = true;
-      closedTabs.splice(existingIdx, 1);
+  return enqueueHistory(async () => {
+    if (closeBuffer.length === 0) return;
+    // Include events that arrived while waiting for the previous write.
+    if (flushTimer !== null) clearTimeout(flushTimer);
+    flushTimer = null;
+    const batch = closeBuffer;
+    closeBuffer = [];
+    try {
+      const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
+      const touched = new Set(batch.map(tab => tab.url));
+      const untouched = [];
+      const byUrl = new Map();
+      for (const tab of closedTabs) {
+        if (!touched.has(tab.url)) {
+          untouched.push(tab);
+          continue;
+        }
+        const existing = byUrl.get(tab.url);
+        const latest = existing && existing.closedAt > tab.closedAt ? existing : tab;
+        byUrl.set(tab.url, {
+          ...latest,
+          pinned: Boolean(tab.pinned || existing?.pinned),
+          closeCount: (tab.closeCount || 1) + (existing ? existing.closeCount || 1 : 0),
+        });
+      }
+      const batchId = batch.length >= 2 ? generateId() : null;
+      for (const item of batch) {
+        const existing = byUrl.get(item.url);
+        const latest = existing && existing.closedAt > item.closedAt ? existing : item;
+        byUrl.set(item.url, {
+          ...latest,
+          batchId,
+          closeCount: (item.closeCount || 1) + (existing ? existing.closeCount || 1 : 0),
+          pinned: Boolean(item.pinned || existing?.pinned),
+        });
+      }
+      await chrome.storage.local.set({ closedTabs: enforceLimit([...byUrl.values(), ...untouched]) });
+    } catch (error) {
+      // Retain raw events (without merged persisted counts) for the next retry.
+      closeBuffer = [...batch, ...closeBuffer];
+      throw error;
     }
-  }
-
-  const merged = [...batch.reverse(), ...closedTabs]; // 最新的在前
-  const cleaned = enforceLimit(merged);
-  await chrome.storage.local.set({ closedTabs: cleaned });
+  });
 }
 
-/** 清理超限和过期记录 */
+/** Keep pinned records and at most MAX_RECORDS ordinary records. */
 function enforceLimit(tabs) {
   const cutoff = Date.now() - RETENTION_DAYS * 86400000;
-  return tabs
-    .filter(tab => tab.pinned || tab.closedAt >= cutoff)
-    .slice(0, MAX_RECORDS);
+  let ordinaryCount = 0;
+  return [...tabs].sort((a, b) => b.closedAt - a.closedAt).filter(tab =>
+    tab.pinned || (tab.closedAt >= cutoff && ordinaryCount++ < MAX_RECORDS)
+  );
 }
 
 /** 更新扩展图标 Badge */

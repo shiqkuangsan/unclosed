@@ -52,6 +52,12 @@ let searchQuery = '';
 let groupBy = 'time'; // 'time' | 'domain'
 let themeMode = 'auto'; // 'auto' | 'light' | 'dark'
 const domainCollapseState = createDomainCollapseState();
+const rowCache = new Map();
+let renderNodes = [];
+let renderFrame = null;
+let refreshTimer = null;
+let historyRevision = 0;
+
 
 // ============================================================
 // DOM 引用
@@ -75,9 +81,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch { /* background 可能未就绪 */ }
 
   await initSettings();
+  setupListeners();
   await loadTabs();
   render();
-  setupListeners();
+  refreshTimer = setInterval(() => {
+    if (!document.hidden) scheduleRender();
+  }, 15000);
+  window.addEventListener('pagehide', () => {
+    clearInterval(refreshTimer);
+    if (renderFrame !== null) cancelAnimationFrame(renderFrame);
+  }, { once: true });
 });
 
 // ============================================================
@@ -111,8 +124,10 @@ function updateUITexts() {
 // 数据加载
 // ============================================================
 async function loadTabs() {
+  const revision = historyRevision;
   const { closedTabs = [] } = await chrome.storage.local.get('closedTabs');
-  allTabs = closedTabs;
+  if (revision !== historyRevision) return;
+  allTabs = [...closedTabs].sort((a, b) => b.closedAt - a.closedAt);
   applyFilter();
 }
 
@@ -132,8 +147,20 @@ function applyFilter() {
 // ============================================================
 // 渲染
 // ============================================================
+function scheduleRender() {
+  if (renderFrame !== null) return;
+  renderFrame = requestAnimationFrame(() => {
+    renderFrame = null;
+    render();
+  });
+}
+
 function render() {
-  $tabList.innerHTML = '';
+  renderNodes = [];
+  const liveIds = new Set(allTabs.map(tab => tab.id));
+  for (const id of rowCache.keys()) {
+    if (!liveIds.has(id)) rowCache.delete(id);
+  }
   $tabCount.textContent = t('recordCount', { n: allTabs.length });
 
   if (filteredTabs.length === 0) {
@@ -150,7 +177,7 @@ function render() {
   const unpinnedTabs = filteredTabs.filter(t => !t.pinned);
 
   if (pinnedTabs.length > 0) {
-    renderGroup(t('pinned'), pinnedTabs);
+    renderGroup(t('pinned'), pinnedTabs.sort((a, b) => b.closedAt - a.closedAt));
   }
 
   if (unpinnedTabs.length > 0) {
@@ -160,6 +187,24 @@ function render() {
       renderByDomain(unpinnedTabs);
     }
   }
+
+  // Reorder only changed nodes; unchanged rows retain their images and listeners.
+  const scrollTop = $tabList.scrollTop;
+  const desired = new Set(renderNodes);
+  for (const node of [...$tabList.childNodes]) {
+    if (!desired.has(node)) node.remove();
+  }
+  let cursor = $tabList.firstChild;
+  for (const node of renderNodes) {
+    if (node === cursor) cursor = cursor.nextSibling;
+    else $tabList.insertBefore(node, cursor);
+  }
+  while (cursor) {
+    const next = cursor.nextSibling;
+    cursor.remove();
+    cursor = next;
+  }
+  $tabList.scrollTop = scrollTop;
 }
 
 // ---- 按时间分组 ----
@@ -167,7 +212,9 @@ function renderByTime(tabs) {
   const now = Date.now();
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const yesterdayStart = todayStart.getTime() - 86400000;
+  const yesterday = new Date(todayStart);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStart = yesterday.getTime();
   const fiveMin = 5 * 60 * 1000;
 
   const groups = [
@@ -177,7 +224,7 @@ function renderByTime(tabs) {
     { label: t('earlier'), tabs: [] },
   ];
 
-  for (const tab of tabs) {
+  for (const tab of [...tabs].sort((a, b) => b.closedAt - a.closedAt)) {
     if (now - tab.closedAt < fiveMin) {
       groups[0].tabs.push(tab);
     } else if (tab.closedAt >= todayStart.getTime()) {
@@ -198,7 +245,7 @@ function renderByTime(tabs) {
 // ---- 按域名分组 ----
 function renderByDomain(tabs) {
   const domainMap = new Map();
-  for (const tab of tabs) {
+  for (const tab of [...tabs].sort((a, b) => b.closedAt - a.closedAt)) {
     const domainKey = tab.domain || '__unknown__';
     if (!domainMap.has(domainKey)) {
       domainMap.set(domainKey, {
@@ -210,7 +257,11 @@ function renderByDomain(tabs) {
   }
 
   // 按标签数量降序排列
-  const sorted = [...domainMap.entries()].sort((a, b) => b[1].tabs.length - a[1].tabs.length);
+  const sorted = [...domainMap.entries()].sort((a, b) =>
+    b[1].tabs.length - a[1].tabs.length ||
+    b[1].tabs[0].closedAt - a[1].tabs[0].closedAt ||
+    a[0].localeCompare(b[0])
+  );
   for (const [domainKey, group] of sorted) {
     renderGroup(group.label, group.tabs, {
       collapsible: true,
@@ -251,7 +302,7 @@ function renderGroup(label, tabs, options = {}) {
     $clearBtn.addEventListener('click', () => clearGroup(label, tabs));
   }
 
-  $tabList.appendChild($header);
+  renderNodes.push($header);
 
   if (isCollapsed) return;
 
@@ -265,7 +316,7 @@ function renderGroup(label, tabs, options = {}) {
     } else {
       // 单个标签
       for (const tab of batch) {
-        $tabList.appendChild(createTabItem(tab, false));
+        renderNodes.push(createTabItem(tab, false));
       }
     }
   }
@@ -324,15 +375,23 @@ function renderBatchGroup(batch) {
   $header.querySelector('.batch-restore-btn').addEventListener('click', () => {
     restoreBatch(batch);
   });
-  $tabList.appendChild($header);
+  renderNodes.push($header);
 
   for (const tab of batch) {
-    $tabList.appendChild(createTabItem(tab, true));
+    renderNodes.push(createTabItem(tab, true));
   }
 }
 
 // ---- 创建单个标签项 ----
 function createTabItem(tab, isBatchChild) {
+  const key = JSON.stringify([tab, isBatchChild, currentLocale]);
+  const cached = rowCache.get(tab.id);
+  if (cached?.key === key) {
+    const time = cached.node.querySelector('.tab-time');
+    const label = formatTime(tab.closedAt);
+    if (time.textContent !== label) time.textContent = label;
+    return cached.node;
+  }
   const $item = document.createElement('div');
   $item.className = `tab-item${isBatchChild ? ' batch-child' : ''}${tab.pinned ? ' pinned' : ''}`;
   $item.dataset.id = tab.id;
@@ -363,19 +422,28 @@ function createTabItem(tab, isBatchChild) {
     </div>
   `;
 
-  // favicon：优先用 Google Favicon Service（主题无关），失败时回退到原始 URL
+  // Lazy images stay in the document so off-screen icons need no immediate request.
   if (tab.domain) {
     const $fallback = $item.querySelector('.tab-favicon-fallback');
     const img = new Image();
     img.className = 'tab-favicon';
-    img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(tab.domain)}&sz=32`;
-    img.addEventListener('load', () => $fallback.replaceWith(img));
-    img.addEventListener('error', () => {
-      if (tab.favIconUrl) {
+    img.alt = '';
+    img.width = 16;
+    img.height = 16;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    let triedFallback = false;
+    img.onerror = () => {
+      if (!triedFallback && tab.favIconUrl) {
+        triedFallback = true;
         img.src = tab.favIconUrl;
+      } else {
         img.onerror = null;
+        img.replaceWith($fallback);
       }
-    });
+    };
+    img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(tab.domain)}&sz=32`;
+    $fallback.replaceWith(img);
   }
 
   // 事件绑定
@@ -384,6 +452,7 @@ function createTabItem(tab, isBatchChild) {
   $item.querySelector('.tab-action-btn--restore').addEventListener('click', () => restoreTab(tab));
   $item.querySelector('.tab-action-btn--delete').addEventListener('click', () => deleteTab(tab.id));
 
+  rowCache.set(tab.id, { key, node: $item });
   return $item;
 }
 
@@ -402,59 +471,34 @@ async function restoreBatch(batch) {
   for (const tab of batch) {
     await chrome.tabs.create({ url: tab.url, active: false });
   }
-  // 批量删除
-  const ids = new Set(batch.map(t => t.id));
-  allTabs = allTabs.filter(t => !ids.has(t.id));
-  await saveTabs();
-  applyFilter();
-  render();
+  await requestHistory({ action: 'remove', ids: batch.map(tab => tab.id) });
 }
 
-/** 切换钉住状态 */
+/** Toggle using the latest persisted state. */
 async function togglePin(tabId) {
-  const tab = allTabs.find(t => t.id === tabId);
-  if (!tab) return;
-  tab.pinned = !tab.pinned;
-  await saveTabs();
-  applyFilter();
-  render();
+  await requestHistory({ action: 'toggle-pin', id: tabId });
 }
 
-/** 删除单条记录 */
 async function deleteTab(tabId) {
-  allTabs = allTabs.filter(t => t.id !== tabId);
-  await saveTabs();
-  applyFilter();
-  render();
+  await requestHistory({ action: 'remove', ids: [tabId] });
 }
 
-/** 清理一个分组内未钉住的记录 */
+/** Clear only this visible group's unpinned records. */
 async function clearGroup(label, tabs) {
-  const ids = new Set(getClearableGroupTabIds(tabs));
-  if (ids.size === 0) return;
-
-  const msg = t('confirmClearGroup', { label, n: ids.size });
-  showConfirm(msg, async () => {
-    allTabs = allTabs.filter(tab => !ids.has(tab.id));
-    await saveTabs();
-    applyFilter();
-    render();
+  const ids = getClearableGroupTabIds(tabs);
+  if (ids.length === 0) return;
+  showConfirm(t('confirmClearGroup', { label, n: ids.length }), () => {
+    requestHistory({ action: 'clear', ids });
   });
 }
 
-/** 清空全部（保留钉住的） */
 async function clearAll() {
-  const pinnedCount = allTabs.filter(t => t.pinned).length;
+  const pinnedCount = allTabs.filter(tab => tab.pinned).length;
+  const ids = allTabs.filter(tab => !tab.pinned).map(tab => tab.id);
   const msg = pinnedCount > 0
     ? t('confirmClearWithPinned', { n: pinnedCount })
     : t('confirmClear');
-
-  showConfirm(msg, async () => {
-    allTabs = allTabs.filter(t => t.pinned);
-    await saveTabs();
-    applyFilter();
-    render();
-  });
+  showConfirm(msg, () => requestHistory({ action: 'clear', ids }));
 }
 
 /** 导出为 JSON */
@@ -487,18 +531,8 @@ async function handleImport(event) {
       return;
     }
 
-    // 合并：按 URL+closedAt 去重
-    const existingKeys = new Set(allTabs.map(t => `${t.url}|${t.closedAt}`));
-    const newTabs = imported.filter(t =>
-      t.url && t.closedAt && !existingKeys.has(`${t.url}|${t.closedAt}`)
-    );
-
-    allTabs = [...newTabs, ...allTabs].sort((a, b) => b.closedAt - a.closedAt);
-    await saveTabs();
-    applyFilter();
-    render();
-
-    alert(t('importSuccess', { n: newTabs.length }));
+    const result = await requestHistory({ action: 'import', tabs: imported });
+    if (result) alert(t('importSuccess', { n: result.importedCount }));
   } catch {
     alert(t('importParseError'));
   }
@@ -510,8 +544,16 @@ async function handleImport(event) {
 // ============================================================
 // 存储
 // ============================================================
-async function saveTabs() {
-  await chrome.storage.local.set({ closedTabs: allTabs });
+async function requestHistory(command) {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'history', ...command });
+    if (!response?.ok) throw new Error('History update failed');
+    // storage.onChanged is the only refresh source for successful writes.
+    return response;
+  } catch {
+    alert(t('operationFailed'));
+    return null;
+  }
 }
 
 // ============================================================
@@ -522,7 +564,8 @@ function setupListeners() {
   $searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
     applyFilter();
-    render();
+    $tabList.scrollTop = 0;
+    scheduleRender();
   });
 
   // 视图切换
@@ -562,9 +605,10 @@ function setupListeners() {
   // 监听 storage 变化（background 可能写入新数据）
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.closedTabs) {
-      allTabs = changes.closedTabs.newValue || [];
+      historyRevision++;
+      allTabs = [...(changes.closedTabs.newValue || [])].sort((a, b) => b.closedAt - a.closedAt);
       applyFilter();
-      render();
+      scheduleRender();
     }
   });
 }
@@ -633,8 +677,9 @@ function formatTime(timestamp) {
     return timeStr;
   }
 
-  const yesterday = today.getTime() - 86400000;
-  if (timestamp >= yesterday) {
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (timestamp >= yesterday.getTime()) {
     return t('yesterdayTime', { time: timeStr });
   }
 

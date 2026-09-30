@@ -12,6 +12,7 @@ const LOCALES = {
     themeDark: '主题: 深色',
     themeLight: '主题: 浅色',
     importTip: '导入记录',
+    operationFailed: '保存失败，请重试。',
     exportTip: '导出记录',
     clearTip: '清空全部',
 
@@ -77,6 +78,7 @@ const LOCALES = {
   },
 
   en: {
+    operationFailed: 'Could not save changes. Please try again.',
     // Header
     langLabel: 'EN',
     themeAuto: 'Theme: System',

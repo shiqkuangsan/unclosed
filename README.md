@@ -33,7 +33,7 @@
 - **Export / Import** — JSON format data export and import
 - **Theme Switching** — Light / Dark / Follow System
 - **i18n** — Chinese / English with manual toggle, defaults to browser language
-- **Auto Cleanup** — Max 500 records, 30-day expiry (pinned records are exempt)
+- **Auto Cleanup** — Up to 500 unpinned records, 30-day expiry (pinned records are exempt from both limits)
 
 ## Screenshots
 

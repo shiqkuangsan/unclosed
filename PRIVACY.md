@@ -19,7 +19,7 @@ UnClosed does **NOT** collect, transmit, or share any user data. All data is sto
 ### Data Retention
 
 - Records are automatically deleted after 30 days (pinned records are exempt)
-- Maximum of 500 records are kept at any time
+- Up to 500 unpinned records are kept; pinned records are exempt
 - You can manually delete individual records or clear all data at any time
 
 ### Third-Party Services
@@ -53,7 +53,7 @@ UnClosed **不会**收集、传输或分享任何用户数据。所有数据均�
 ### 数据保留
 
 - 记录在 30 天后自动删除（已钉住的记录不受影响）
-- 最多保留 500 条记录
+- 最多保留 500 条未钉住记录，已钉住记录不受数量限制
 - 您可以随时手动删除单条记录或清空全部数据
 
 ### 第三方服务
